@@ -131,7 +131,7 @@ var apiKey string = ""
 func main() {
 
 	geocode := cli.NewApp()
-	geocode.Name = "Google Maps Geocoder API Command Line Tool"
+	geocode.Name = "geocode"
 	geocode.Version = "00.01.0"
 	geocode.Compiled = time.Now()
 	geocode.Authors = []cli.Author{
@@ -141,10 +141,7 @@ func main() {
 		},
 	}
 	geocode.HelpName = "geocode"
-	geocode.UsageText = "geocode - CLI for the Google Geocoding API"
-	geocode.ArgsUsage = "[args and such]"
-	geocode.Usage = `Use the Google Maps Geocoding API Service to Render Latitude 
-		Longitude Coordinate Pairs from Loosely Structured Address Strings`
+	geocode.Usage = "geocode [OPTIONS] COMMAND [arg...]"
 
 	t := time.Now().Format(time.RFC3339)
 
