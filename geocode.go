@@ -126,7 +126,67 @@ func geocodeRecords(c *maps.Client, records <-chan *Record) (results chan *Recor
 	return results
 }
 
+func checkArgs(c *cli.Context) error {
+
+	if len(c.String("input")) == 0 {
+		return cli.NewExitError("ERROR: Must Provide Input Filepath", 1)
+	}
+
+	_, err := os.Stat(c.String("input"))
+
+	if os.IsNotExist(err) {
+		return cli.NewExitError("ERROR: Input Filepath Does Not Exist", 2)
+	}
+
+	if len(c.String("key")) == 0 {
+		return cli.NewExitError("ERROR: Must Provide Valid API Key", 3)
+	}
+
+	return nil
+}
+
+func formatOutput(c *cli.Context) (string, error) {
+
+	t := time.Now().Format(time.RFC3339)
+	var err error = nil
+	var output string
+
+	if len(c.String("output")) == 0 {
+
+		p, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+
+		output = filepath.Join(p, "results_"+t+".csv")
+
+	} else if len(c.String("output")) != 0 {
+
+		fi, err := os.Stat(filepath.Dir(c.String("output")))
+		if err != nil {
+			output = "None"
+			err = cli.NewExitError("ERROR: Output Filepath or Directory Does Not Exist", 5)
+			return output, err
+		}
+
+		switch mode := fi.Mode(); {
+
+		case mode.IsDir():
+
+			output = filepath.Join(c.String("output"), "results_"+t+".csv")
+
+		case mode.IsRegular():
+
+			output = c.String("output")
+		}
+	}
+
+	return output, err
+}
+
 var apiKey string = ""
+var input string = ""
+var output string = ""
 
 func main() {
 
@@ -141,21 +201,6 @@ func main() {
 		},
 	}
 	geocode.HelpName = "geocode"
-
-	t := time.Now().Format(time.RFC3339)
-
-	p1, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	input := filepath.Join(p1, "records.csv")
-
-	p2, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	output := filepath.Join(p2, "results_"+t+".csv")
-
 	geocode.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "key, k",
@@ -178,8 +223,16 @@ func main() {
 
 	geocode.Action = func(c *cli.Context) error {
 
-		if len(c.String("key")) == 0 {
-			return cli.NewExitError("ERROR: Must Provide Valid API Key", 69)
+		err := checkArgs(c)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
+		}
+
+		out, err := formatOutput(c)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
 		}
 
 		records := csvReader(c.String("input"))
@@ -191,7 +244,7 @@ func main() {
 
 		results := geocodeRecords(client, records)
 
-		csvWriter(c.String("output"), results)
+		csvWriter(out, results)
 
 		return err
 	}
