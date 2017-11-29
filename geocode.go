@@ -141,7 +141,6 @@ func main() {
 		},
 	}
 	geocode.HelpName = "geocode"
-	geocode.Usage = "geocode [OPTIONS] COMMAND [arg...]"
 
 	t := time.Now().Format(time.RFC3339)
 
