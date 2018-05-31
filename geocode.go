@@ -15,14 +15,17 @@ import (
 	"time"
 )
 
+// Record Struct Field Specification
 type Record struct {
 	Id      string
 	Address string
 	Lat     float64
 	Lng     float64
+    Region  string
 	Note    string
 }
 
+// CSV Reader for Processing Input Files
 func csvReader(filepath string) (output chan *Record) {
 	f, err := os.Open(filepath)
 	if err != nil {
@@ -54,6 +57,7 @@ func csvReader(filepath string) (output chan *Record) {
 	return records
 }
 
+// CSV Writer for Generating Output Results Files
 func csvWriter(filepath string, results <-chan *Record) {
 
 	f, err := os.Create(filepath)
@@ -88,7 +92,27 @@ func csvWriter(filepath string, results <-chan *Record) {
 	return
 }
 
-func geocodeRecords(c *maps.Client, records <-chan *Record) (results chan *Record) {
+// Record Formatting Method for Assembling the API Request
+func formatRequest(con *cli.Context, rec *Record) (request maps.GeocodingRequest) {
+
+    var req maps.GeocodingRequest
+
+    if len(con.String("region")) == 0 {
+        req = maps.GeocodingRequest{
+            Address: rec.Address,
+        }
+    } else {
+        req = maps.GeocodingRequest{
+            Address: rec.Address,
+            Region: con.String("region"),
+        }
+    }
+
+    return req
+}
+
+// Wrapper Function to Automate the API Calls
+func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) (results chan *Record) {
 
 	results = make(chan *Record, len(records))
 	lim := len(records)
@@ -96,62 +120,63 @@ func geocodeRecords(c *maps.Client, records <-chan *Record) (results chan *Recor
 
 	for i := 0; i < lim; i++ {
 
-		record := <-records
-
-		req := &maps.GeocodingRequest{
-			Address: record.Address,
-		}
+		rec := <-records
+        req := formatRequest(con, rec)
 
 		if req.Address != "" {
-			res, err := c.Geocode(context.Background(), req)
+			res, err := clt.Geocode(context.Background(), &req)
 			if err != nil {
 				fmt.Println(err)
 			}
 			if len(res) != 0 {
-				record.Lat = res[0].Geometry.Location.Lat
-				record.Lng = res[0].Geometry.Location.Lng
-				record.Note = "Success"
+				rec.Lat = res[0].Geometry.Location.Lat
+				rec.Lng = res[0].Geometry.Location.Lng
+				rec.Note = "Success"
 			} else {
-				record.Note = "No Geocoding Result"
+				rec.Note = "No Geocoding Result"
 			}
 		} else {
-			record.Note = "Address Missing"
+			rec.Note = "Address Missing"
 		}
-		results <- record
+
+		results <- rec
 		bar.Increment()
-	}
+
+    }
 
 	bar.Finish()
 
 	return results
 }
 
-func checkArgs(c *cli.Context) error {
+// Function for Parsing Command Line Arguments
+func checkArgs(con *cli.Context) error {
 
-	if len(c.String("input")) == 0 {
+	if len(con.String("input")) == 0 {
 		return cli.NewExitError("ERROR: Must Provide Input Filepath", 1)
 	}
 
-	_, err := os.Stat(c.String("input"))
+	_, err := os.Stat(con.String("input"))
 
 	if os.IsNotExist(err) {
 		return cli.NewExitError("ERROR: Input Filepath Does Not Exist", 2)
 	}
 
-	if len(c.String("key")) == 0 {
+	if len(con.String("key")) == 0 {
 		return cli.NewExitError("ERROR: Must Provide Valid API Key", 3)
 	}
 
 	return nil
 }
 
-func formatOutput(c *cli.Context) (string, error) {
+// Function for Formatting API Call Response
+func formatOutput(con *cli.Context) (string, error) {
 
 	t := time.Now().Format(time.RFC3339)
 	var err error = nil
 	var output string
 
-	if len(c.String("output")) == 0 {
+	if len(con.String("output")) == 0 {
 
 		p, err := os.Getwd()
 		if err != nil {
@@ -160,39 +185,35 @@ func formatOutput(c *cli.Context) (string, error) {
 
 		output = filepath.Join(p, "results_"+t+".csv")
 
-	} else if len(c.String("output")) != 0 {
+	} else if len(con.String("output")) != 0 {
 
-		fi, err := os.Stat(filepath.Dir(c.String("output")))
-		if err != nil {
-			output = "None"
-			err = cli.NewExitError("ERROR: Output Filepath or Directory Does Not Exist", 5)
+		_, err := os.Stat(con.String("output"))
+
+        if os.IsNotExist(err) {
+            output = "None"
+			err = cli.NewExitError("ERROR: Output Directory Does Not Exist", 5)
 			return output, err
-		}
+        }
 
-		switch mode := fi.Mode(); {
+        output = filepath.Join(con.String("output"), "results_"+t+".csv")
 
-		case mode.IsDir():
-
-			output = filepath.Join(c.String("output"), "results_"+t+".csv")
-
-		case mode.IsRegular():
-
-			output = c.String("output")
-		}
-	}
+    }
 
 	return output, err
 }
 
+// Global Variables for CLI
 var apiKey string = ""
 var input string = ""
 var output string = ""
+var region string = ""
 
+// Main Function
 func main() {
 
 	geocode := cli.NewApp()
 	geocode.Name = "geocode"
-	geocode.Version = "00.01.0"
+	geocode.Version = "00.01.1"
 	geocode.Compiled = time.Now()
 	geocode.Authors = []cli.Author{
 		cli.Author{
@@ -214,37 +235,42 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "output, o",
-			Usage: "Output 'Filepath'",
+			Usage: "Output 'Directory Path'",
 			Value: output,
 		},
+        cli.StringFlag{
+            Name: "region, r",
+            Usage: "Restricted 'Region Code'",
+            Value: region,
+        },
 	}
 
 	sort.Sort(cli.FlagsByName(geocode.Flags))
 
-	geocode.Action = func(c *cli.Context) error {
+	geocode.Action = func(con *cli.Context) error {
 
-		err := checkArgs(c)
+		err := checkArgs(con)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 
-		out, err := formatOutput(c)
+		out, err := formatOutput(con)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 
-		records := csvReader(c.String("input"))
+		rec := csvReader(con.String("input"))
 
-		client, err := maps.NewClient(maps.WithAPIKey(c.String("key")))
+		clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
 		if err != nil {
 			panic(err)
 		}
 
-		results := geocodeRecords(client, records)
+		res := geocodeRecords(con, clt, rec)
 
-		csvWriter(out, results)
+		csvWriter(out, res)
 
 		return err
 	}
