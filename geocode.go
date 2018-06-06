@@ -54,7 +54,7 @@ func csvReader(filepath string) (output chan *Record, e error) {
 		}
 	}
 
-	return records, nil
+	return records, err
 }
 
 // CSV Writer for Generating Output Results Files
@@ -89,7 +89,7 @@ func csvWriter(filepath string, results <-chan *Record) (e error) {
 
 	}
 
-	return nil
+	return err
 }
 
 // Test Connection Against Current IP
@@ -102,6 +102,10 @@ func testClientIP(clt *maps.Client) (e error) {
     }
 
     _, err := clt.Geocode(context.Background(), &req)
+
+    if err == nil {
+        fmt.Println("Client IP Authenticated...")
+    }
 
     return err
 }
@@ -128,6 +132,7 @@ func formatRequest(con *cli.Context, rec *Record) (request maps.GeocodingRequest
 // Wrapper Function to Automate the API Calls
 func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) (results chan *Record, e error) {
 
+    var err error = nil 
 	results = make(chan *Record, len(records))
 	lim := len(records)
 	bar := pb.StartNew(lim)
@@ -160,7 +165,7 @@ func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) 
 
 	bar.Finish()
 
-	return results, nil
+	return results, err
 }
 
 // Function for Parsing Command Line Arguments
@@ -180,7 +185,7 @@ func checkArgs(con *cli.Context) (e error) {
 		return cli.NewExitError("ERROR: Must Provide Valid API Key", 3)
 	}
 
-	return nil
+	return err
 }
 
 // Function for Formatting API Call Response
@@ -228,7 +233,7 @@ func main() {
 
 	geocode := cli.NewApp()
 	geocode.Name = "geocode"
-	geocode.Version = "00.01.2"
+	geocode.Version = "00.01.3"
 	geocode.Compiled = time.Now()
 	geocode.Authors = []cli.Author{
 		cli.Author{
@@ -264,42 +269,49 @@ func main() {
 
 	geocode.Action = func(con *cli.Context) (e error) {
 
-		err := checkArgs(con)
+		// Check input arguments
+        err := checkArgs(con)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 
+        // Establish new Google Maps API client connection
         clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
 		if err != nil {
 			fmt.Println(err)
             os.Exit(2)
 		}
 
+        // Authenticate client IP
         err = testClientIP(clt)
         if err != nil {
             fmt.Println(err)
             os.Exit(2)
         }
 
+        // Format output
 		out, err := formatOutput(con)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 
+        // Read in address data from csv file
 		rec, err := csvReader(con.String("input"))
         if err != nil {
             fmt.Println(err)
             os.Exit(2)
         }
 
+        // Geocode records from input csv file
 		res, err  := geocodeRecords(con, clt, rec)
         if err != nil {
             fmt.Println(err)
             os.Exit(2)
         }
 
+        // Write formatted output to csv file
         err = csvWriter(out, res)
         if err != nil{
             fmt.Println(err)
