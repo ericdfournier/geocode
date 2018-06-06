@@ -26,7 +26,7 @@ type Record struct {
 }
 
 // CSV Reader for Processing Input Files
-func csvReader(filepath string) (output chan *Record) {
+func csvReader(filepath string) (output chan *Record, e error) {
 	f, err := os.Open(filepath)
 	if err != nil {
 		panic(err)
@@ -54,11 +54,11 @@ func csvReader(filepath string) (output chan *Record) {
 		}
 	}
 
-	return records
+	return records, nil
 }
 
 // CSV Writer for Generating Output Results Files
-func csvWriter(filepath string, results <-chan *Record) {
+func csvWriter(filepath string, results <-chan *Record) (e error) {
 
 	f, err := os.Create(filepath)
 	if err != nil {
@@ -89,7 +89,21 @@ func csvWriter(filepath string, results <-chan *Record) {
 
 	}
 
-	return
+	return nil
+}
+
+// Test Connection Against Current IP
+func testClientIP(clt *maps.Client) (e error) {
+
+    var req maps.GeocodingRequest
+
+    req = maps.GeocodingRequest{
+        Address: "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+    }
+
+    _, err := clt.Geocode(context.Background(), &req)
+
+    return err
 }
 
 // Record Formatting Method for Assembling the API Request
@@ -112,7 +126,7 @@ func formatRequest(con *cli.Context, rec *Record) (request maps.GeocodingRequest
 }
 
 // Wrapper Function to Automate the API Calls
-func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) (results chan *Record) {
+func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) (results chan *Record, e error) {
 
 	results = make(chan *Record, len(records))
 	lim := len(records)
@@ -146,11 +160,11 @@ func geocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *Record) 
 
 	bar.Finish()
 
-	return results
+	return results, nil
 }
 
 // Function for Parsing Command Line Arguments
-func checkArgs(con *cli.Context) error {
+func checkArgs(con *cli.Context) (e error) {
 
 	if len(con.String("input")) == 0 {
 		return cli.NewExitError("ERROR: Must Provide Input Filepath", 1)
@@ -170,7 +184,7 @@ func checkArgs(con *cli.Context) error {
 }
 
 // Function for Formatting API Call Response
-func formatOutput(con *cli.Context) (string, error) {
+func formatOutput(con *cli.Context) (out string, e error) {
 
 	t := time.Now().Format(time.RFC3339)
 	var err error = nil
@@ -180,7 +194,8 @@ func formatOutput(con *cli.Context) (string, error) {
 
 		p, err := os.Getwd()
 		if err != nil {
-			panic(err)
+            output = "None"
+			return output, err
 		}
 
 		output = filepath.Join(p, "results_"+t+".csv")
@@ -213,7 +228,7 @@ func main() {
 
 	geocode := cli.NewApp()
 	geocode.Name = "geocode"
-	geocode.Version = "00.01.1"
+	geocode.Version = "00.01.2"
 	geocode.Compiled = time.Now()
 	geocode.Authors = []cli.Author{
 		cli.Author{
@@ -247,7 +262,7 @@ func main() {
 
 	sort.Sort(cli.FlagsByName(geocode.Flags))
 
-	geocode.Action = func(con *cli.Context) error {
+	geocode.Action = func(con *cli.Context) (e error) {
 
 		err := checkArgs(con)
 		if err != nil {
@@ -255,22 +270,41 @@ func main() {
 			os.Exit(2)
 		}
 
+        clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
+		if err != nil {
+			fmt.Println(err)
+            os.Exit(2)
+		}
+
+        err = testClientIP(clt)
+        if err != nil {
+            fmt.Println(err)
+            os.Exit(2)
+        }
+
 		out, err := formatOutput(con)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 
-		rec := csvReader(con.String("input"))
+		rec, err := csvReader(con.String("input"))
+        if err != nil {
+            fmt.Println(err)
+            os.Exit(2)
+        }
 
-		clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
-		if err != nil {
-			panic(err)
-		}
+		res, err  := geocodeRecords(con, clt, rec)
+        if err != nil {
+            fmt.Println(err)
+            os.Exit(2)
+        }
 
-		res := geocodeRecords(con, clt, rec)
-
-		csvWriter(out, res)
+        err = csvWriter(out, res)
+        if err != nil{
+            fmt.Println(err)
+            os.Exit(2)
+        }
 
 		return err
 	}
