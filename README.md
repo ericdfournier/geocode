@@ -1,2 +1,3 @@
-# geocode
-go language command line tool for geocoding address records
+# gmaps
+Go language command line tool providing structured access to various Google Maps
+APIs. 
