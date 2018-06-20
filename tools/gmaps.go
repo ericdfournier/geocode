@@ -18,14 +18,14 @@ var region string = ""
 
 // Function for Parsing Command Line Arguments
 func CheckArgs(con *cli.Context) (e error) {
-	if len(con.String("input")) == 0 {
+	if con.IsSet("input") != true {
 		return cli.NewExitError("ERROR: Must Provide Input Filepath", 1)
 	}
 	_, err := os.Stat(con.String("input"))
 	if os.IsNotExist(err) {
 		return cli.NewExitError("ERROR: Input Filepath Does Not Exist", 2)
 	}
-	if len(con.String("key")) == 0 {
+	if con.IsSet("key") != true {
 		return cli.NewExitError("ERROR: Must Provide Valid API Key", 3)
 	}
 	return err
@@ -59,6 +59,7 @@ func main() {
 					Name: "key, k",
 					Usage: "Google Maps Geocoder API 'Key'",
 					Value: apiKey,
+                    EnvVar: "GMAPS_API_KEY",
 				},
 				cli.StringFlag{
 					Name: "input, i",
@@ -134,6 +135,7 @@ func main() {
                     Name: "key, k",
                     Usage: "Google Maps Elevation API 'Key'",
                     Value: apiKey,
+                    EnvVar: "GMAPS_API_KEY",
                 },
                 cli.StringFlag{
                     Name: "input, i",
