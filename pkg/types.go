@@ -12,10 +12,10 @@ type GeocodeRecord struct {
 
 // Elevation Record Struct Field Spedification
 type ElevationRecord struct {
-    Id          string
-    Elevation   float64
-    Lat         float64
-    Lng         float64
-    Resolution  float64
-    Note        string
+	Id         string
+	Elevation  float64
+	Lat        float64
+	Lng        float64
+	Resolution float64
+	Note       string
 }

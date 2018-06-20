@@ -7,9 +7,9 @@ import (
 
 // Format Geocode Record for API Request
 func GeocodeFormatRequest(con *cli.Context, rec *GeocodeRecord) (request maps.GeocodingRequest) {
-    // Allocated empty request
+	// Allocated empty request
 	var req maps.GeocodingRequest
-    // Set request properties on optional flags
+	// Set request properties on optional flags
 	if len(con.String("region")) == 0 {
 		req = maps.GeocodingRequest{
 			Address: rec.Address,
@@ -25,16 +25,16 @@ func GeocodeFormatRequest(con *cli.Context, rec *GeocodeRecord) (request maps.Ge
 
 // Format Elevation Record for API Request
 func ElevationFormatRequest(rec *ElevationRecord) (request maps.ElevationRequest) {
-    // Allocated empty request
-    var req maps.ElevationRequest
-    // Set request format
-    req = maps.ElevationRequest{
-        Locations: []maps.LatLng{
-            {
-                Lat: rec.Lat,
-                Lng: rec.Lng,
-            },
-        },
-    }
-    return req
+	// Allocated empty request
+	var req maps.ElevationRequest
+	// Set request format
+	req = maps.ElevationRequest{
+		Locations: []maps.LatLng{
+			{
+				Lat: rec.Lat,
+				Lng: rec.Lng,
+			},
+		},
+	}
+	return req
 }
