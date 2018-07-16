@@ -86,6 +86,49 @@ func GeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error) {
 	return records, err
 }
 
+// CSV Reader for Processing Geocoding Input Files
+func ReverseGeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error) {
+	// Open input file
+	f, err := os.Open(filepath)
+	if err != nil {
+		panic(err)
+	}
+	// Defer closure
+	defer f.Close()
+	// Allocated new csv reader
+	r := csv.NewReader(bufio.NewReader(f))
+	r.Comma = ','
+	r.FieldsPerRecord = -1
+	// Read input records
+	rawData, err := r.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+	// Allocate empty records channel
+	records := make(chan *GeocodeRecord, len(rawData))
+	// Enter record channel population loop
+	for i, record := range rawData {
+		// Skip header row
+		if i == 0 {
+			continue
+		} else {
+            // Parse lat float
+            latFloat, err := strconv.ParseFloat(record[1], 64)
+            if err != nil {
+                panic(err)
+            }
+            // Parse lng float
+            lngFloat, err := strconv.ParseFloat(record[2], 64)
+            if err != nil {
+                panic(err)
+            }
+            // Write to record
+            records <- &GeocodeRecord{Id: record[0], Lat: latFloat, Lng: lngFloat}
+		}
+	}
+	return records, err
+}
+
 // CSV Reader for Processing Place Nearby Input Files
 func PlaceNearbyReadCSV(filepath string) (output chan *PlaceNearbyRecord, e error) {
 	// Open input file

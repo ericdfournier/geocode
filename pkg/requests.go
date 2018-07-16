@@ -46,6 +46,43 @@ func GeocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *GeocodeR
 	return results, err
 }
 
+// Wrapper function to Automate Reverse Geocoding API Calls
+func ReverseGeocodeRecords(con *cli.Context, clt *maps.Client, records <-chan * GeocodeRecord) (results chan *GeocodeRecord, e error) {
+    // Allocate empty variables
+    var err error = nil
+    results = make(chan *GeocodeRecord, len(records))
+    lim := len(records)
+    bar := pb.StartNew(lim)
+    // Enter request loop
+    for i := 0; i < lim; i++ {
+        //Extract current record
+        rec := <-records
+        req := ReverseGeocodeFormatRequest(con, rec)
+        // Submit requests and process errors
+        if req.LatLng.Lat != 0 && req.LatLng.Lng != 0 {
+            res, err := clt.Geocode(context.Background(), &req)
+            if err != nil {
+                fmt.Println(err)
+            }
+            if len(res) != 0 {
+                rec.Address = res[0].FormattedAddress
+                rec.Note = "Success"
+            } else {
+                rec.Note = "No Reverse Geocoding Result"
+            }
+        } else {
+            rec.Note = "Lat and/or Lng Missing"
+        }
+        // Send results to channel 
+        results <- rec
+        // Increment progress bar
+        bar.Increment()
+    }
+    // Finish progress bar
+    bar.Finish()
+    return results, err
+}
+
 // Wrapper Function to Automate Elevation API Calls
 func ElevationRecords(con *cli.Context, clt *maps.Client, records <-chan *ElevationRecord) (results chan *ElevationRecord, e error) {
 	// Allocate empty variables
@@ -106,7 +143,11 @@ func PlaceNearbyRecords(con *cli.Context, clt *maps.Client, records <-chan *Plac
 				rec.PlaceId = res.Results[0].PlaceID
 				rec.Name = res.Results[0].Name
 				rec.Type = res.Results[0].Types[0]
-				rec.Note = "Success"
+				if len(res.Results) > 1 {
+                    rec.Note = "Success: Multiple Place Results Found - First Retrieved"
+                } else {
+                    rec.Note = "Success"
+                }
 			} else {
 				rec.Note = "No Place Result"
 			}

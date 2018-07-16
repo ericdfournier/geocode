@@ -23,6 +23,24 @@ func GeocodeFormatRequest(con *cli.Context, rec *GeocodeRecord) (request maps.Ge
 	return req
 }
 
+// Format Reverse Geocode Record for API Request
+func ReverseGeocodeFormatRequest(con *cli.Context, rec *GeocodeRecord) (request maps.GeocodingRequest) {
+    // Allocate empty request
+    var req maps.GeocodingRequest
+    //Set request properties on optional flags
+    if len(con.String("region")) == 0 {
+        req = maps.GeocodingRequest{
+            LatLng: &maps.LatLng{rec.Lat, rec.Lng},
+        }
+    } else {
+        req = maps.GeocodingRequest{
+            LatLng: &maps.LatLng{rec.Lat, rec.Lng},
+            Region: con.String("region"),
+        }
+    }
+    return req
+}
+
 // Format Elevation Record for API Request
 func ElevationFormatRequest(rec *ElevationRecord) (request maps.ElevationRequest) {
 	// Allocated empty request
