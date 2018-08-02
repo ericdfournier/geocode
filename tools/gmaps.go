@@ -39,7 +39,7 @@ func main() {
 	gmaps := cli.NewApp()
 	gmaps.Name = "gmaps"
 	gmaps.Usage = "Command Line Interface to Google Maps Web Service APIs"
-	gmaps.Version = "00.05.6"
+	gmaps.Version = "00.05.7"
 	gmaps.Compiled = time.Now()
 	gmaps.Authors = []cli.Author{
 		cli.Author{
@@ -67,15 +67,15 @@ func main() {
 					Name: "input, i",
 					Usage: `Input 'Filepath', Columns: 
 					id			[string], 
-					lat			[float], 
-					lng			[float]`,
+					address		[string]`,
 					Value: input,
 				},
 				cli.StringFlag{
 					Name: "output, o",
 					Usage: `Output 'Filepath', Columns: 
 					...,
-					address			[string], 
+					lat 			[float],
+					lng				[float],
 					note			[string]`,
 					Value: output,
 				},
