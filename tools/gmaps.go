@@ -16,17 +16,39 @@ var input string = ""
 var output string = ""
 var region string = ""
 
+// Function to Check if Inputs Can Be Sourced from Piped Stdin
+func CheckCharDevice() (info os.FileInfo){
+    // Get os stat
+    info, err := os.Stdin.Stat()
+    if err != nil {
+        panic(err)
+    }
+    // If piped inputs not supported print error message
+    if info.Mode() & os.ModeCharDevice != 0 {
+        fmt.Println("The command is intended to work with pipes.")
+        fmt.Println("Usage: echo 'input' | gmaps [...]")
+        panic(err)
+    }
+    return info
+}
+
 // Function for Parsing Command Line Arguments
 func CheckArgs(con *cli.Context) (e error) {
+    // Allocated empty error
+    var err error
+    // Get stdin
+    info := CheckCharDevice()
 	// Check if input flag is set
-	if con.IsSet("input") != true {
-		return cli.NewExitError("ERROR: Must Provide Input Filepath", 1)
+	if con.IsSet("input") != true && info.Size() <= 0 {
+		return cli.NewExitError("ERROR: Must Recieve STDIN or Provide Input Filepath", 1)
 	}
 	// Check if input file exists
-	_, err := os.Stat(con.String("input"))
-	if os.IsNotExist(err) {
-		return cli.NewExitError("ERROR: Input Filepath Does Not Exist", 2)
-	}
+	if con.IsSet("input") == true {
+        _, err := os.Stat(con.String("input"))
+	    if os.IsNotExist(err) {
+		    return cli.NewExitError("ERROR: Input Filepath Does Not Exist", 2)
+	    }
+    }
 	// Check if api key flag is set
 	if con.IsSet("key") != true {
 		return cli.NewExitError("ERROR: Must Provide Valid API Key", 3)
@@ -39,7 +61,7 @@ func main() {
 	gmaps := cli.NewApp()
 	gmaps.Name = "gmaps"
 	gmaps.Usage = "Command Line Interface to Google Maps Web Service APIs"
-	gmaps.Version = "00.05.7"
+	gmaps.Version = "00.05.9"
 	gmaps.Compiled = time.Now()
 	gmaps.Authors = []cli.Author{
 		cli.Author{
@@ -53,9 +75,17 @@ func main() {
 		{
 			Name:  "geocode",
 			Usage: "Google Maps Geocoder API Tool",
-			Description: `Accepts an Input CSV File With Address Strings and 
-			Outputs Formatted CSV File With Geocoder Response 
-			Latitude, Longitude Results.`,
+			Description: `
+            Accepts STDIN or Input FILEPATH [CSV]. 
+            Outputs STDOUT or Output FILEPATH [CSV].
+            Input STDIN Format: 
+                id          [string],
+                address     [string]
+            Output STDOUT Format:
+                ...                ,
+                lat         [float],
+                lng         [float],
+                note        [string]`,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key, k",
@@ -65,14 +95,14 @@ func main() {
 				},
 				cli.StringFlag{
 					Name: "input, i",
-					Usage: `Input 'Filepath', Columns: 
+					Usage: `Input FILEPATH Format: 
 					id			[string], 
 					address		[string]`,
 					Value: input,
 				},
 				cli.StringFlag{
 					Name: "output, o",
-					Usage: `Output 'Filepath', Columns: 
+					Usage: `Output FILEPATH Format: 
 					...,
 					lat 			[float],
 					lng				[float],
@@ -105,7 +135,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Read in address data from csv file
-				rec, err := gm.GeocodeReadCSV(con.String("input"))
+				rec, err := gm.GeocodeReadInput(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -116,14 +146,8 @@ func main() {
 					fmt.Println(err)
 					os.Exit(2)
 				}
-				// Format output filepath
-				out, err := gm.OutputFilepath(con)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(2)
-				}
 				// Write formatted output to csv file
-				err = gm.GeocodeWriteCSV(out, res)
+				err = gm.GeocodeWriteOutput(con, res)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -187,7 +211,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Read in address data from csv file
-				rec, err := gm.ReverseGeocodeReadCSV(con.String("input"))
+				rec, err := gm.ReverseGeocodeReadCSV(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -273,7 +297,7 @@ func main() {
 							os.Exit(2)
 						}
 						// Read in coordinate data from csv file
-						rec, err := gm.PlaceNearbyReadCSV(con.String("input"))
+						rec, err := gm.PlaceNearbyReadCSV(con)
 						if err != nil {
 							fmt.Println(err)
 							os.Exit(2)
@@ -387,7 +411,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Read in coordinate data from csv file
-				rec, err := gm.ElevationReadCSV(con.String("input"))
+				rec, err := gm.ElevationReadCSV(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
