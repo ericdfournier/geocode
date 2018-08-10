@@ -18,7 +18,7 @@ var region string = ""
 
 // Function to Check if Inputs Can Be Sourced from Piped Stdin
 func CheckCharDevice() (info os.FileInfo){
-    // Get os stat
+    // Get stdin stat
     info, err := os.Stdin.Stat()
     if err != nil {
         panic(err)
@@ -61,7 +61,7 @@ func main() {
 	gmaps := cli.NewApp()
 	gmaps.Name = "gmaps"
 	gmaps.Usage = "Command Line Interface to Google Maps Web Service APIs"
-	gmaps.Version = "00.05.9"
+	gmaps.Version = "00.06.00"
 	gmaps.Compiled = time.Now()
 	gmaps.Authors = []cli.Author{
 		cli.Author{
@@ -78,10 +78,10 @@ func main() {
 			Description: `
             Accepts STDIN or Input FILEPATH [CSV]. 
             Outputs STDOUT or Output FILEPATH [CSV].
-            Input STDIN Format: 
+            Input Format: 
                 id          [string],
                 address     [string]
-            Output STDOUT Format:
+            Output Format:
                 ...                ,
                 lat         [float],
                 lng         [float],
@@ -95,18 +95,20 @@ func main() {
 				},
 				cli.StringFlag{
 					Name: "input, i",
-					Usage: `Input FILEPATH Format: 
+					Usage: `
+                    Input FILEPATH Format: 
 					id			[string], 
 					address		[string]`,
 					Value: input,
 				},
 				cli.StringFlag{
 					Name: "output, o",
-					Usage: `Output FILEPATH Format: 
-					...,
-					lat 			[float],
-					lng				[float],
-					note			[string]`,
+					Usage: `
+                    Output FILEPATH Format: 
+					...                ,
+					lat 		[float],
+					lng			[float],
+					note		[string]`,
 					Value: output,
 				},
 				cli.StringFlag{
@@ -157,11 +159,19 @@ func main() {
 		},
 		// Reverse Geocoder API Sub-Command
 		{
-			Name:  "revgeocode",
+			Name:  "reverse_geocode",
 			Usage: "Google Maps Reverse Geocoder API Tool",
-			Description: `Accepts an Input CSV File With Latitude, Longitude
-			Pairs and Outputs Formatted CSV File With Reverse Geocoder 
-			Response Address Results.`,
+		    Description: `
+            Accepts STDIN or Input FILEPATH [CSV]. 
+            Outputs STDOUT or Output FILEPATH [CSV].
+            Input Format: 
+                id          [string],
+                lat         [float],
+                lng         [float]
+            Output Format:
+                ...                ,
+                address     [string],
+                note        [string]`,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key, k",
@@ -171,7 +181,8 @@ func main() {
 				},
 				cli.StringFlag{
 					Name: "input, i",
-					Usage: `Input 'Filepath', Columns: 
+					Usage: `
+                    Input 'Filepath', Columns: 
 					id			[string], 
 					lat			[float], 
 					lng			[float]`,
@@ -179,10 +190,11 @@ func main() {
 				},
 				cli.StringFlag{
 					Name: "output, o",
-					Usage: `Output 'Filepath', Columns: 
-					...,
-					address			[string], 
-					note			[string]`,
+					Usage: `
+                    Output 'Filepath', Columns: 
+					...                 ,
+					address		[string], 
+					note		[string]`,
 					Value: output,
 				},
 				cli.StringFlag{
@@ -211,7 +223,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Read in address data from csv file
-				rec, err := gm.ReverseGeocodeReadCSV(con)
+				rec, err := gm.ReverseGeocodeReadInput(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -246,10 +258,19 @@ func main() {
 				{
 					Name:  "nearby",
 					Usage: "Search for nearby places by latitude, longitude",
-					Description: `Accepts and Input CSV File With 
-					Latitude, Longitude Coordinate Pairs and Outputs a 
-					Formatted CSV File With Google Place Location Response
-					Information`,
+					Description: `
+                    Accepts STDIN or Input FILEPATH [CSV]. 
+                    Outputs STDOUT or Output FILEPATH [CSV].
+                    Input Format: 
+                        id          [string],
+                        lat         [float],
+                        lng         [float],
+                    Output Format:
+                        ...                 ,
+                        placeId     [string],
+                        name        [string],
+                        type        [string],
+                        note        [string]`,
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:   "key, k",
@@ -259,7 +280,8 @@ func main() {
 						},
 						cli.StringFlag{
 							Name: "input, i",
-							Usage: `Input 'Filepath', Columns:
+							Usage: `
+                            Input Format:
 							id 			[string],
 							lat 		[float],
 							lng 		[float],
@@ -268,8 +290,9 @@ func main() {
 						},
 						cli.StringFlag{
 							Name: "output, o",
-							Usage: `Output 'Filepath', Columns:
-							...,
+							Usage: `
+                            Output Format:
+							...                 ,
 							placeId		[string],
 							name 		[string],
 							type 		[string],
@@ -297,7 +320,7 @@ func main() {
 							os.Exit(2)
 						}
 						// Read in coordinate data from csv file
-						rec, err := gm.PlaceNearbyReadCSV(con)
+						rec, err := gm.PlaceNearbyReadInput(con)
 						if err != nil {
 							fmt.Println(err)
 							os.Exit(2)
@@ -366,9 +389,18 @@ func main() {
 		{
 			Name:  "elevation",
 			Usage: "Google Maps Elevation API Tool",
-			Description: `Accepts an Input CSV File With Latitude, Longitude
-			Pairs and Outputs a Formatted CSV File with Elevation Response
-			Results`,
+			Description: `
+            Accepts STDIN or Input FILEPATH [CSV]. 
+            Outputs STDOUT or Output FILEPATH [CSV].
+            Input STDIN Format: 
+                id          [string],
+                lat         [float],
+                lng         [float]
+            Output STDOUT Format:
+                ...                ,
+                elevation   [float],
+                resolution  [float],
+                note        [string]`,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "key, k",
@@ -378,11 +410,12 @@ func main() {
 				},
 				cli.StringFlag{
 					Name: "input, i",
-					Usage: `Input 'Filepath', Columns:
-					...,
+					Usage: `
+                    Input 'Filepath', Columns:
+					...                    ,
 					elevation		[float],
 					resolution		[float],
-					note		[string]`,
+					note            [string]`,
 					Value: input,
 				},
 				cli.StringFlag{
@@ -411,7 +444,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Read in coordinate data from csv file
-				rec, err := gm.ElevationReadCSV(con)
+				rec, err := gm.ElevationReadInput(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -422,14 +455,8 @@ func main() {
 					fmt.Println(err)
 					os.Exit(2)
 				}
-				// Format output filepath
-				out, err := gm.OutputFilepath(con)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(2)
-				}
 				// Write formatted output to csv file
-				err = gm.ElevationWriteCSV(out, res)
+				err = gm.ElevationWriteOutput(con, res)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
