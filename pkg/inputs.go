@@ -3,24 +3,34 @@ package gmaps
 import (
 	"bufio"
 	"encoding/csv"
-	"os"
+	"gopkg.in/urfave/cli.v1"
+    "os"
 	"strconv"
 )
 
-// CSV Reader for Processing Elevation Input Files
-func ElevationReadCSV(filepath string) (output chan *ElevationRecord, e error) {
-	// Open input file
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	// Allocate new file reader
-	r := csv.NewReader(bufio.NewReader(f))
-	r.Comma = ','
-	r.FieldsPerRecord = -1
-	// Read in the raw data
+// Reader for Processing Elevation Inputs
+func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error) {
+    // Allocate empty reader
+    var r *csv.Reader = nil
+    // Switch on input flag
+    if con.IsSet("input") {
+        // Open input file
+        f, err := os.Open(con.String("input"))
+        if err != nil {
+            panic(err)
+        }
+        // Defer closure
+        defer f.Close()
+        // Allocate new file reader
+        r = csv.NewReader(bufio.NewReader(f))
+    } else {
+        // Read from stdin
+        r = csv.NewReader(os.Stdin)
+    }
+    // Parameterize reader
+    r.Comma = ','
+    r.FieldsPerRecord = -1
+    // Read in the raw data
 	rawData, err := r.ReadAll()
 	if err != nil {
 		panic(err)
@@ -30,7 +40,7 @@ func ElevationReadCSV(filepath string) (output chan *ElevationRecord, e error) {
 	// Enter reader loops
 	for i, record := range rawData {
 		// Skip header row
-		if i == 0 {
+		if i == 0 && con.IsSet("input") {
 			continue
 		} else {
 			// Parse lat float
@@ -54,17 +64,26 @@ func ElevationReadCSV(filepath string) (output chan *ElevationRecord, e error) {
 	return records, err
 }
 
-// CSV Reader for Processing Geocoding Input Files
-func GeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error) {
-	// Open input file
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	// Allocated new csv reader
-	r := csv.NewReader(bufio.NewReader(f))
+// Reader for Processing Geocoding Inputs
+func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
+    // Allocate reader reciever
+    var r *csv.Reader = nil
+    // Switch on input type
+    if con.IsSet("input") {
+        // Open input file
+	    f, err := os.Open(con.String("input"))
+	    if err != nil {
+		    panic(err)
+	    }
+	    // Defer closure
+	    defer f.Close()
+	    // Allocated new csv reader
+        r = csv.NewReader(bufio.NewReader(f))
+    } else {
+        // Read from stdin
+        r = csv.NewReader(os.Stdin)
+    }
+    // Parameterize reader
 	r.Comma = ','
 	r.FieldsPerRecord = -1
 	// Read input records
@@ -77,27 +96,38 @@ func GeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error) {
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
-		if i == 0 {
+		if i == 0 && con.IsSet("input") == true {
 			continue
 		} else {
-			records <- &GeocodeRecord{Id: record[0], Address: record[1]}
+			records <- &GeocodeRecord{
+                Id: record[0],
+                Address: record[1]}
 		}
 	}
 	return records, err
 }
 
-// CSV Reader for Processing Geocoding Input Files
-func ReverseGeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error) {
-	// Open input file
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	// Allocated new csv reader
-	r := csv.NewReader(bufio.NewReader(f))
-	r.Comma = ','
+// Reader for Processing Reverse Geocoding Inputs
+func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
+	// Allocate empty reader
+    var r *csv.Reader = nil
+    // Switch on input type
+    if con.IsSet("input") {
+        // Open input file
+        f, err := os.Open(con.String("input"))
+        if err != nil {
+            panic(err)
+        }
+        // Defer closure
+        defer f.Close()
+        // Allocated new csv reader
+        r = csv.NewReader(bufio.NewReader(f))
+    } else {
+        // Read from stdin
+        r = csv.NewReader(os.Stdin)
+    }
+    // Parameterize reader
+    r.Comma = ','
 	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
@@ -109,7 +139,7 @@ func ReverseGeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
-		if i == 0 {
+		if i == 0 && con.IsSet("input") {
 			continue
 		} else {
             // Parse lat float
@@ -123,22 +153,34 @@ func ReverseGeocodeReadCSV(filepath string) (output chan *GeocodeRecord, e error
                 panic(err)
             }
             // Write to record
-            records <- &GeocodeRecord{Id: record[0], Lat: latFloat, Lng: lngFloat}
+            records <- &GeocodeRecord{
+                Id: record[0],
+                Lat: latFloat,
+                Lng: lngFloat}
 		}
 	}
 	return records, err
 }
 
-// CSV Reader for Processing Place Nearby Input Files
-func PlaceNearbyReadCSV(filepath string) (output chan *PlaceNearbyRecord, e error) {
-	// Open input file
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	r := csv.NewReader(bufio.NewReader(f))
+// Reader for Processing Place Nearby Inputs
+func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceNearbyRecord, e error) {
+	// Allocate empty reader
+    var r *csv.Reader = nil
+    // Switch on input type
+    if con.IsSet("input") {
+        // Open input file
+        f, err := os.Open(con.String("input"))
+        if err != nil {
+            panic(err)
+        }
+        // Defer closure
+        defer f.Close()
+        r = csv.NewReader(bufio.NewReader(f))
+    } else {
+        // Read from stdin
+        r = csv.NewReader(os.Stdin)
+    }
+    // Parameterize reader
 	r.Comma = ','
 	r.FieldsPerRecord = -1
 	// Read input records
@@ -151,7 +193,7 @@ func PlaceNearbyReadCSV(filepath string) (output chan *PlaceNearbyRecord, e erro
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
-		if i == 0 {
+		if i == 0 && con.IsSet("input") {
 			continue
 		} else {
 			// Parse lat float
@@ -169,23 +211,35 @@ func PlaceNearbyReadCSV(filepath string) (output chan *PlaceNearbyRecord, e erro
 			if err != nil {
 				panic(err)
 			}
-			records <- &PlaceNearbyRecord{Id: record[0], Lat: latFloat, Lng: lngFloat, Radius: uint(radiusInt)}
+			records <- &PlaceNearbyRecord{
+                Id: record[0],
+                Lat: latFloat,
+                Lng: lngFloat,
+                Radius: uint(radiusInt)}
 		}
 	}
 	return records, err
 }
 
-// CSV Reader for Processing Place Details Input Files
-func PlaceDetailsReadCSV(filepath string) (output chan *PlaceDetailRecord, e error) {
-	// Open input file
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	r := csv.NewReader(bufio.NewReader(f))
-	r.Comma = ','
+// Reader for Processing Place Detail Inputs
+func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceDetailRecord, e error) {
+	// Allocated empty csv reader
+    var r *csv.Reader = nil
+    // Switch on input type
+    if con.IsSet("input") {
+        // Open input file
+        f, err := os.Open(con.String("input"))
+        if err != nil {
+            panic(err)
+        }
+        // Defer closure
+        defer f.Close()
+        r = csv.NewReader(bufio.NewReader(f))
+    } else {
+        r = csv.NewReader(os.Stdin)
+    }
+    // Parameterize csv reader
+    r.Comma = ','
 	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
@@ -197,10 +251,12 @@ func PlaceDetailsReadCSV(filepath string) (output chan *PlaceDetailRecord, e err
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
-		if i == 0 {
+		if i == 0 && con.IsSet("input") {
 			continue
 		} else {
-			records <- &PlaceDetailRecord{Id: record[0], PlaceId: record[1]}
+			records <- &PlaceDetailRecord{
+                Id: record[0],
+                PlaceId: record[1]}
 		}
 	}
 	return records, err
