@@ -227,7 +227,7 @@ func ReverseGeocodeWriteCSV(filepath string, results <-chan *GeocodeRecord) (e e
 }
 
 // CSV Writer for Generating Places Nearby Output Results Files
-func PlaceNearbyWriteCSV(filepath string, results <-chan *PlaceNearbyRecord) (e error) {
+func PlaceNearbyWriteCSV(filepath string, results <-chan *PlaceRecord) (e error) {
 	// Open output file
 	f, err := os.Create(filepath)
 	if err != nil {

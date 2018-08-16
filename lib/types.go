@@ -43,7 +43,7 @@ type ElevationRecord struct {
 }
 
 // Place Nearby Record Struct Field Specification
-type PlaceNearbyRecord struct {
+type PlaceRecord struct {
 	Id      string
 	Lat     float64
 	Lng     float64
@@ -52,10 +52,4 @@ type PlaceNearbyRecord struct {
 	Name    string
 	Type    string
 	Note    string
-}
-
-// Place Details Record Struct Field Specification
-type PlaceDetailRecord struct {
-	Id      string
-	PlaceId string
 }

@@ -30,28 +30,60 @@ import (
 	"strconv"
 )
 
+// Define Input Interface
+type Input interface {
+	Read() *csv.Reader
+}
+
+// Define Filepath Input Struct
+type Filepath struct {
+	path string
+}
+
+// Define Console Input Struct
+type Console struct {
+	stdin *os.File
+}
+
+// Define Read Method for Filepath Input
+func (fp *Filepath) Read() *csv.Reader {
+	// Open input file
+	f, err := os.Open(fp.path)
+	if err != nil {
+		panic(err)
+	}
+	// Defer closure
+	defer f.Close()
+	// Allocate new file reader
+	r := csv.NewReader(bufio.NewReader(f))
+	// Parameterize reader
+	r.Comma = ','
+	r.FieldsPerRecord = -1
+	// Return reader
+	return r
+}
+
+// Define Read Method for Console Input
+func (cs *Console) Read() *csv.Reader {
+	// Read from stdin
+	r := csv.NewReader(cs.stdin)
+	// Return reader
+	return r
+}
+
 // Reader for Processing Elevation Inputs
 func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on input flag
-	if con.IsSet("input") {
-		// Open input file
-		f, err := os.Open(con.String("input"))
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
-		defer f.Close()
-		// Allocate new file reader
-		r = csv.NewReader(bufio.NewReader(f))
-	} else {
-		// Read from stdin
-		r = csv.NewReader(os.Stdin)
+	// Switch on context input
+	switch con.IsSet("input") {
+	case true:
+		fp := &Filepath{con.String("input")}
+		r = fp.Read()
+	default:
+		cs := &Console{os.Stdin}
+		r = cs.Read()
 	}
-	// Parameterize reader
-	r.Comma = ','
-	r.FieldsPerRecord = -1
 	// Read in the raw data
 	rawData, err := r.ReadAll()
 	if err != nil {
@@ -88,26 +120,17 @@ func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error
 
 // Reader for Processing Geocoding Inputs
 func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
-	// Allocate reader reciever
+	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on input type
-	if con.IsSet("input") {
-		// Open input file
-		f, err := os.Open(con.String("input"))
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
-		defer f.Close()
-		// Allocated new csv reader
-		r = csv.NewReader(bufio.NewReader(f))
-	} else {
-		// Read from stdin
-		r = csv.NewReader(os.Stdin)
+	// Switch on context input
+	switch con.IsSet("input") {
+	case true:
+		fp := &Filepath{con.String("input")}
+		r = fp.Read()
+	default:
+		cs := &Console{os.Stdin}
+		r = cs.Read()
 	}
-	// Parameterize reader
-	r.Comma = ','
-	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
 	if err != nil {
@@ -133,24 +156,15 @@ func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on input type
-	if con.IsSet("input") {
-		// Open input file
-		f, err := os.Open(con.String("input"))
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
-		defer f.Close()
-		// Allocated new csv reader
-		r = csv.NewReader(bufio.NewReader(f))
-	} else {
-		// Read from stdin
-		r = csv.NewReader(os.Stdin)
+	// Switch on context input
+	switch con.IsSet("input") {
+	case true:
+		fp := &Filepath{con.String("input")}
+		r = fp.Read()
+	default:
+		cs := &Console{os.Stdin}
+		r = cs.Read()
 	}
-	// Parameterize reader
-	r.Comma = ','
-	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
 	if err != nil {
@@ -185,33 +199,25 @@ func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e er
 }
 
 // Reader for Processing Place Nearby Inputs
-func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceNearbyRecord, e error) {
+func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on input type
-	if con.IsSet("input") {
-		// Open input file
-		f, err := os.Open(con.String("input"))
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
-		defer f.Close()
-		r = csv.NewReader(bufio.NewReader(f))
-	} else {
-		// Read from stdin
-		r = csv.NewReader(os.Stdin)
+	// Switch on context input
+	switch con.IsSet("input") {
+	case true:
+		fp := &Filepath{con.String("input")}
+		r = fp.Read()
+	default:
+		cs := &Console{os.Stdin}
+		r = cs.Read()
 	}
-	// Parameterize reader
-	r.Comma = ','
-	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
 	if err != nil {
 		panic(err)
 	}
 	// Allocate empty records channel
-	records := make(chan *PlaceNearbyRecord, len(rawData))
+	records := make(chan *PlaceRecord, len(rawData))
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
@@ -233,7 +239,7 @@ func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceNearbyRecord, e e
 			if err != nil {
 				panic(err)
 			}
-			records <- &PlaceNearbyRecord{
+			records <- &PlaceRecord{
 				Id:     record[0],
 				Lat:    latFloat,
 				Lng:    lngFloat,
@@ -244,39 +250,32 @@ func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceNearbyRecord, e e
 }
 
 // Reader for Processing Place Detail Inputs
-func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceDetailRecord, e error) {
-	// Allocated empty csv reader
+func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceRecord, e error) {
+	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on input type
-	if con.IsSet("input") {
-		// Open input file
-		f, err := os.Open(con.String("input"))
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
-		defer f.Close()
-		r = csv.NewReader(bufio.NewReader(f))
-	} else {
-		r = csv.NewReader(os.Stdin)
+	// Switch on context input
+	switch con.IsSet("input") {
+	case true:
+		fp := &Filepath{con.String("input")}
+		r = fp.Read()
+	default:
+		cs := &Console{os.Stdin}
+		r = cs.Read()
 	}
-	// Parameterize csv reader
-	r.Comma = ','
-	r.FieldsPerRecord = -1
 	// Read input records
 	rawData, err := r.ReadAll()
 	if err != nil {
 		panic(err)
 	}
 	// Allocate empty records channel
-	records := make(chan *PlaceDetailRecord, len(rawData))
+	records := make(chan *PlaceRecord, len(rawData))
 	// Enter record channel population loop
 	for i, record := range rawData {
 		// Skip header row
 		if i == 0 && con.IsSet("input") {
 			continue
 		} else {
-			records <- &PlaceDetailRecord{
+			records <- &PlaceRecord{
 				Id:      record[0],
 				PlaceId: record[1]}
 		}

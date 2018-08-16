@@ -144,10 +144,10 @@ func ElevationRecords(con *cli.Context, clt *maps.Client, records <-chan *Elevat
 }
 
 // Wrapper Function to Automate Places API Nearby Calls
-func PlaceNearbyRecords(con *cli.Context, clt *maps.Client, records <-chan *PlaceNearbyRecord) (results chan *PlaceNearbyRecord, e error) {
+func PlaceNearbyRecords(con *cli.Context, clt *maps.Client, records <-chan *PlaceRecord) (results chan *PlaceRecord, e error) {
 	// Allocate empty variables
 	var err error = nil
-	results = make(chan *PlaceNearbyRecord, len(records))
+	results = make(chan *PlaceRecord, len(records))
 	lim := len(records)
 	bar := pb.StartNew(lim)
 	// Enter request loop

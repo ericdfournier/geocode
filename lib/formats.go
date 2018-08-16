@@ -80,7 +80,7 @@ func ElevationFormatRequest(con *cli.Context, rec *ElevationRecord) (request map
 }
 
 // Format Place Nearby Record for API Request
-func PlaceNearbyFormatRequest(con *cli.Context, rec *PlaceNearbyRecord) (request maps.NearbySearchRequest) {
+func PlaceNearbyFormatRequest(con *cli.Context, rec *PlaceRecord) (request maps.NearbySearchRequest) {
 	// Allocated empty request
 	var req maps.NearbySearchRequest
 	// Set request format
