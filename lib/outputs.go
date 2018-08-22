@@ -31,14 +31,25 @@ import (
 	"strings"
 )
 
-// CSV Writer for Generating Output Elevation Results Files
-func ElevationWriteOutput(con *cli.Context, results <-chan *ElevationRecord) (e error) {
-	// Allocate empty error reciever
-	var err error
-	// Switch on output file flag
-	if con.IsSet("output") {
-		// Format output filepath
-		out, err := OutputFilepath(con)
+// Define Output Interface
+type Output interface {
+    Write() *csv.Writer
+}
+
+// Define fileOutput Struct
+type fileOutput struct {
+    path string
+}
+
+// Define consoleOutput Struct
+type consoleOutput struct {
+    stdin *os.File
+}
+
+// Define Write Method for fileOutput Struct
+func (fp *fileOutput) Write() (file *os.File, writer *csv.Writer) {
+        // Format output filepath
+		out, err := OutputFilepath(fp.path)
 		if err != nil {
 			panic(err)
 		}
@@ -47,12 +58,26 @@ func ElevationWriteOutput(con *cli.Context, results <-chan *ElevationRecord) (e 
 		if err != nil {
 			panic(err)
 		}
-		// Defer closure
-		defer f.Close()
 		// Allocate new file writer
 		w := csv.NewWriter(f)
-		defer w.Flush()
-		// Set writer formatting
+        // Reader writer
+        return f, w
+}
+
+// CSV Writer for Generating Output Elevation Results Files
+func ElevationWriteOutput(con *cli.Context, results <-chan *ElevationRecord) (e error) {
+	// Allocate empty error reciever
+	var err error
+	// Switch on output file flag
+	switch con.IsSet("output") {
+	case true:
+        // Generate interface types
+        fp := &fileOutput{con.String("output")}
+        f, w := fp.Write()
+        // Defer Closures
+        defer f.Close()
+        defer w.Flush()
+        // Set writer formatting
 		err = w.Write([]string{
 			"id",
 			"lat",
@@ -68,6 +93,8 @@ func ElevationWriteOutput(con *cli.Context, results <-chan *ElevationRecord) (e 
 		for i := 0; i < lim; i++ {
 			// Extract current record from channel
 			record := <-results
+            //DEBUG 
+            fmt.Println(record.Id)
 			// Format strings
 			latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
 			lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
@@ -85,7 +112,7 @@ func ElevationWriteOutput(con *cli.Context, results <-chan *ElevationRecord) (e 
 				panic(err)
 			}
 		}
-	} else {
+    default:
 		// Enter writer loop
 		lim := len(results)
 		for i := 0; i < lim; i++ {
@@ -115,22 +142,14 @@ func GeocodeWriteOutput(con *cli.Context, results <-chan *GeocodeRecord) (e erro
 	// Allocated empty error reciever
 	var err error = nil
 	// Switch on output file flag
-	if con.IsSet("output") {
-		// Format output filepath
-		out, err := OutputFilepath(con)
-		if err != nil {
-			panic(err)
-		}
-		// Open output file
-		f, err := os.Create(out)
-		if err != nil {
-			panic(err)
-		}
-		// Defer closure
+	switch con.IsSet("output") {
+	case true:
+        // Generate interface types
+        fp := &fileOutput{con.String("output")}
+        f, w := fp.Write()
+		// Defer closures
 		defer f.Close()
-		// Allocate empty writer
-		w := csv.NewWriter(f)
-		defer w.Flush()
+        defer w.Flush()
 		// Format record outputs
 		err = w.Write([]string{
 			"id",
@@ -160,7 +179,7 @@ func GeocodeWriteOutput(con *cli.Context, results <-chan *GeocodeRecord) (e erro
 				panic(err)
 			}
 		}
-	} else {
+    default:
 		// Enter writer loop
 		lim := len(results)
 		for i := 0; i < lim; i++ {
@@ -183,96 +202,140 @@ func GeocodeWriteOutput(con *cli.Context, results <-chan *GeocodeRecord) (e erro
 }
 
 // CSV Writer for Generating Reverse Geocoding Output Results Files
-func ReverseGeocodeWriteCSV(filepath string, results <-chan *GeocodeRecord) (e error) {
-	// Open output file
-	f, err := os.Create(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	// Allocate empty writer
-	w := csv.NewWriter(f)
-	defer w.Flush()
-	// Format record outputs
-	err = w.Write([]string{
-		"id",
-		"lat",
-		"lng",
-		"address",
-		"note"})
-	if err != nil {
-		panic(err)
-	}
-	// Enter writer loop
-	lim := len(results)
-	for i := 0; i < lim; i++ {
-		// Extract current record from channel
-		record := <-results
-		// Format strings
-		latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
-		lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
-		// Write to output file
-		err := w.Write([]string{
-			record.Id,
-			latString,
-			lngString,
-			record.Address,
-			record.Note})
-		if err != nil {
-			panic(err)
-		}
-	}
+func ReverseGeocodeWriteOutput(con *cli.Context, results <-chan *GeocodeRecord) (e error) {
+	// Allocate empty error receiver
+    var err error = nil
+    // Switch on output file flag
+    switch con.IsSet("output") {
+    case true:
+        // Generate interface types
+        fp := &fileOutput{con.String("output")}
+        f, w := fp.Write()
+        // Defer closures
+        defer f.Close()
+        defer w.Flush()
+        // Format record outputs
+        err = w.Write([]string{
+            "id",
+            "lat",
+            "lng",
+            "address",
+            "note"})
+        if err != nil {
+            panic(err)
+        }
+        // Enter writer loop
+        lim := len(results)
+        for i := 0; i < lim; i++ {
+            // Extract current record from channel
+            record := <-results
+            // Format strings
+            latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
+            lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
+            // Write to output file
+            err := w.Write([]string{
+                record.Id,
+                latString,
+                lngString,
+                record.Address,
+                record.Note})
+            if err != nil {
+                panic(err)
+            }
+	    }
+    default:
+        // Enter writer loop
+        lim := len(results)
+        for i := 0; i < lim; i++ {
+            // Extract current record from channel
+            record := <-results
+            // Format strings
+            latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
+            lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
+            // Write to output file
+            values := []string{
+                record.Id,
+                latString,
+                lngString,
+                record.Address,
+                record.Note}
+            fmt.Println(strings.Join(values, ","))
+	    }
+    }
 	return err
 }
 
 // CSV Writer for Generating Places Nearby Output Results Files
-func PlaceNearbyWriteCSV(filepath string, results <-chan *PlaceRecord) (e error) {
-	// Open output file
-	f, err := os.Create(filepath)
-	if err != nil {
-		panic(err)
-	}
-	// Defer closure
-	defer f.Close()
-	// Allocate empty writer
-	w := csv.NewWriter(f)
-	defer w.Flush()
-	// Format record outputs
-	err = w.Write([]string{
-		"id",
-		"lat",
-		"lng",
-		"radius",
-		"place_id",
-		"name",
-		"type",
-		"note"})
-	if err != nil {
-		panic(err)
-	}
-	// Enter writer loop
-	lim := len(results)
-	for i := 0; i < lim; i++ {
-		// Extract current record from channel
-		record := <-results
-		// Format strings
-		latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
-		lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
-		radiusString := strconv.Itoa(int(record.Radius))
-		// Write to output file
-		err := w.Write([]string{
-			record.Id,
-			latString,
-			lngString,
-			radiusString,
-			record.PlaceId,
-			record.Name,
-			record.Type,
-			record.Note})
-		if err != nil {
-			panic(err)
-		}
-	}
+func PlaceNearbyWriteOutput(con *cli.Context, results <-chan *PlaceRecord) (e error) {
+	// Allocate empty error receiver
+    var err error = nil
+    // Switch on output file flag
+    switch con.IsSet("output") {
+    case true:
+        // Generate interface types
+        fp := &fileOutput{con.String("output")}
+        f, w := fp.Write()
+        // Defer closure
+        defer f.Close()
+        defer w.Flush()
+        // Format record outputs
+        err = w.Write([]string{
+            "id",
+            "lat",
+            "lng",
+            "radius",
+            "place_id",
+            "name",
+            "type",
+            "note"})
+        if err != nil {
+            panic(err)
+        }
+        // Enter writer loop
+        lim := len(results)
+        for i := 0; i < lim; i++ {
+            // Extract current record from channel
+            record := <-results
+            // Format strings
+            latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
+            lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
+            radiusString := strconv.Itoa(int(record.Radius))
+            // Write to output file
+            err := w.Write([]string{
+                record.Id,
+                latString,
+                lngString,
+                radiusString,
+                record.PlaceId,
+                record.Name,
+                record.Type,
+                record.Note})
+            if err != nil {
+                panic(err)
+            }
+        }
+    default:
+        // Enter writer loop
+        lim := len(results)
+        for i := 0; i < lim; i++ {
+            // Extract current record from channel
+            record := <-results
+            // Format strings
+            latString := strconv.FormatFloat(record.Lat, 'f', -1, 64)
+            lngString := strconv.FormatFloat(record.Lng, 'f', -1, 64)
+            radiusString := strconv.Itoa(int(record.Radius))
+            // Write to output file
+            values := []string{
+                record.Id,
+                latString,
+                lngString,
+                radiusString,
+                record.PlaceId,
+                record.Name,
+                record.Type,
+                record.Note}
+            fmt.Println(strings.Join(values, ","))
+        }
+    }
 	return err
 }

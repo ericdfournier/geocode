@@ -35,18 +35,18 @@ type Input interface {
 	Read() *csv.Reader
 }
 
-// Define Filepath Input Struct
-type Filepath struct {
+// Define fileInput Struct
+type fileInput struct {
 	path string
 }
 
-// Define Console Input Struct
-type Console struct {
+// Define consoleInput Struct
+type consoleInput struct {
 	stdin *os.File
 }
 
-// Define Read Method for Filepath Input
-func (fp *Filepath) Read() *csv.Reader {
+// Define Read Method for fileInput Struct
+func (fp *fileInput) Read() *csv.Reader {
 	// Open input file
 	f, err := os.Open(fp.path)
 	if err != nil {
@@ -63,8 +63,8 @@ func (fp *Filepath) Read() *csv.Reader {
 	return r
 }
 
-// Define Read Method for Console Input
-func (cs *Console) Read() *csv.Reader {
+// Define Read Method for consoleInput Struct
+func (cs *consoleInput) Read() *csv.Reader {
 	// Read from stdin
 	r := csv.NewReader(cs.stdin)
 	// Return reader
@@ -78,10 +78,10 @@ func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
-		fp := &Filepath{con.String("input")}
+		fp := &fileInput{con.String("input")}
 		r = fp.Read()
 	default:
-		cs := &Console{os.Stdin}
+		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
 	}
 	// Read in the raw data
@@ -125,10 +125,10 @@ func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
-		fp := &Filepath{con.String("input")}
+		fp := &fileInput{con.String("input")}
 		r = fp.Read()
 	default:
-		cs := &Console{os.Stdin}
+		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
 	}
 	// Read input records
@@ -159,10 +159,10 @@ func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e er
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
-		fp := &Filepath{con.String("input")}
+		fp := &fileInput{con.String("input")}
 		r = fp.Read()
 	default:
-		cs := &Console{os.Stdin}
+		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
 	}
 	// Read input records
@@ -205,10 +205,10 @@ func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceRecord, e error) 
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
-		fp := &Filepath{con.String("input")}
+		fp := &fileInput{con.String("input")}
 		r = fp.Read()
 	default:
-		cs := &Console{os.Stdin}
+		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
 	}
 	// Read input records
@@ -256,10 +256,10 @@ func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceRecord, e error)
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
-		fp := &Filepath{con.String("input")}
+		fp := &fileInput{con.String("input")}
 		r = fp.Read()
 	default:
-		cs := &Console{os.Stdin}
+		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
 	}
 	// Read input records

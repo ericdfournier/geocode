@@ -83,7 +83,7 @@ func main() {
 	gmaps := cli.NewApp()
 	gmaps.Name = "gmaps"
 	gmaps.Usage = "Command Line Interface to Google Maps Web Service APIs"
-	gmaps.Version = "00.06.02"
+	gmaps.Version = "00.06.03"
 	gmaps.Compiled = time.Now()
 	gmaps.Authors = []cli.Author{
 		cli.Author{
@@ -256,14 +256,8 @@ func main() {
 					fmt.Println(err)
 					os.Exit(2)
 				}
-				// Format output filepath
-				out, err := gm.OutputFilepath(con)
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(2)
-				}
 				// Write formatted output to csv file
-				err = gm.ReverseGeocodeWriteCSV(out, res)
+				err = gm.ReverseGeocodeWriteOutput(con, res)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -353,14 +347,8 @@ func main() {
 							fmt.Println(err)
 							os.Exit(2)
 						}
-						// Format output filepath
-						out, err := gm.OutputFilepath(con)
-						if err != nil {
-							fmt.Println(err)
-							os.Exit(2)
-						}
 						// Write formatted output to CSV file
-						err = gm.PlaceNearbyWriteCSV(out, res)
+						err = gm.PlaceNearbyWriteOutput(con, res)
 						if err != nil {
 							fmt.Println(err)
 							os.Exit(2)
