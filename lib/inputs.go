@@ -46,21 +46,19 @@ type consoleInput struct {
 }
 
 // Define Read Method for fileInput Struct
-func (fp *fileInput) Read() *csv.Reader {
+func (fp *fileInput) Read() (*os.File, *csv.Reader) {
 	// Open input file
 	f, err := os.Open(fp.path)
 	if err != nil {
 		panic(err)
 	}
-	// Defer closure
-	defer f.Close()
 	// Allocate new file reader
 	r := csv.NewReader(bufio.NewReader(f))
 	// Parameterize reader
 	r.Comma = ','
 	r.FieldsPerRecord = -1
 	// Return reader
-	return r
+	return f, r
 }
 
 // Define Read Method for consoleInput Struct
@@ -73,16 +71,18 @@ func (cs *consoleInput) Read() *csv.Reader {
 
 // Reader for Processing Elevation Inputs
 func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error) {
-	// Allocate empty reader
+	// Allocate empty reader and file receivers
 	var r *csv.Reader = nil
+    var f *os.File = nil
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
 		fp := &fileInput{con.String("input")}
-		r = fp.Read()
+        f, r = fp.Read()
+        defer f.Close()
 	default:
 		cs := &consoleInput{os.Stdin}
-		r = cs.Read()
+        r = cs.Read()
 	}
 	// Read in the raw data
 	rawData, err := r.ReadAll()
@@ -122,11 +122,13 @@ func ElevationReadInput(con *cli.Context) (output chan *ElevationRecord, e error
 func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
-	// Switch on context input
+	var f *os.File = nil
+    // Switch on context input
 	switch con.IsSet("input") {
 	case true:
 		fp := &fileInput{con.String("input")}
-		r = fp.Read()
+        f, r = fp.Read()
+        defer f.Close()
 	default:
 		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
@@ -156,11 +158,13 @@ func GeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
+    var f *os.File = nil
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
 		fp := &fileInput{con.String("input")}
-		r = fp.Read()
+        f, r = fp.Read()
+        defer f.Close()
 	default:
 		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
@@ -202,11 +206,13 @@ func ReverseGeocodeReadInput(con *cli.Context) (output chan *GeocodeRecord, e er
 func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
+    var f *os.File = nil
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
 		fp := &fileInput{con.String("input")}
-		r = fp.Read()
+        f, r = fp.Read()
+        defer f.Close()
 	default:
 		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
@@ -253,11 +259,13 @@ func PlaceNearbyReadInput(con *cli.Context) (output chan *PlaceRecord, e error) 
 func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceRecord, e error) {
 	// Allocate empty reader
 	var r *csv.Reader = nil
+    var f *os.File = nil
 	// Switch on context input
 	switch con.IsSet("input") {
 	case true:
 		fp := &fileInput{con.String("input")}
-		r = fp.Read()
+        f, r = fp.Read()
+        defer f.Close()
 	default:
 		cs := &consoleInput{os.Stdin}
 		r = cs.Read()
@@ -282,3 +290,4 @@ func PlaceDetailsReadInput(con *cli.Context) (output chan *PlaceRecord, e error)
 	}
 	return records, err
 }
+

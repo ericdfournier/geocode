@@ -22,6 +22,10 @@ SOFTWARE.
 
 package gmaps
 
+import (
+	"googlemaps.github.io/maps"
+)
+
 // Geocode Record Struct Field Specification
 type GeocodeRecord struct {
 	Id      string
@@ -44,12 +48,15 @@ type ElevationRecord struct {
 
 // Place Nearby Record Struct Field Specification
 type PlaceRecord struct {
-	Id      string
-	Lat     float64
-	Lng     float64
-	Radius  uint
-	PlaceId string
-	Name    string
-	Type    string
-	Note    string
+	Id       string
+	Lat      float64
+	Lng      float64
+	Radius   uint
+	PlaceId  string
+	Name     string
+	Type     string
+	Scope    string
+	Bounds   maps.LatLngBounds
+	Viewport maps.LatLngBounds
+	Note     string
 }

@@ -72,8 +72,9 @@ func GeocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *GeocodeR
 func ReverseGeocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *GeocodeRecord) (results chan *GeocodeRecord, e error) {
 	// Allocate empty variables
 	var err error = nil
-	results = make(chan *GeocodeRecord, len(records))
+    // Allocate receiver variables
 	lim := len(records)
+    results = make(chan *GeocodeRecord, lim)
 	bar := pb.StartNew(lim)
 	// Enter request loop
 	for i := 0; i < lim; i++ {
@@ -109,8 +110,9 @@ func ReverseGeocodeRecords(con *cli.Context, clt *maps.Client, records <-chan *G
 func ElevationRecords(con *cli.Context, clt *maps.Client, records <-chan *ElevationRecord) (results chan *ElevationRecord, e error) {
 	// Allocate empty variables
 	var err error = nil
-	results = make(chan *ElevationRecord, len(records))
+    // Allocate receiver variables
 	lim := len(records)
+    results = make(chan *ElevationRecord, lim)
 	bar := pb.StartNew(lim)
 	// Enter request loop
 	for i := 0; i < lim; i++ {
@@ -147,8 +149,9 @@ func ElevationRecords(con *cli.Context, clt *maps.Client, records <-chan *Elevat
 func PlaceNearbyRecords(con *cli.Context, clt *maps.Client, records <-chan *PlaceRecord) (results chan *PlaceRecord, e error) {
 	// Allocate empty variables
 	var err error = nil
-	results = make(chan *PlaceRecord, len(records))
+    // Allocate receiver variables
 	lim := len(records)
+    results = make(chan *PlaceRecord, lim)
 	bar := pb.StartNew(lim)
 	// Enter request loop
 	for i := 0; i < lim; i++ {
@@ -184,4 +187,39 @@ func PlaceNearbyRecords(con *cli.Context, clt *maps.Client, records <-chan *Plac
 	// Finish progress bar
 	bar.Finish()
 	return results, err
+}
+
+func PlaceDetailRecords(con *cli.Context, clt *maps.Client, records <-chan *PlaceRecord) (results chan *PlaceRecord, e error){
+    // Allocate empty variables
+    var err error = nil
+    // Allocate reciever variables
+    lim := len(records)
+    results = make(chan *PlaceRecord, lim)
+    bar := pb.StartNew(lim)
+    // Enter request loop
+    for i := 0; i < lim; i++ {
+        rec := <-records
+        req := PlaceDetailFormatRequest(con, rec)
+        // Submit requests and process errors
+        if req.PlaceID != "" {
+            res, err := clt.PlaceDetails(context.Background(), &req)
+            if err != nil {
+                fmt.Println(err)
+            }
+                rec.Name = res.Name
+                rec.Scope = res.Scope
+                rec.Type = res.Types[0]
+                rec.Viewport = res.Geometry.Viewport
+                rec.Bounds = res.Geometry.Bounds
+        } else {
+            rec.Note = "Place ID Missing"
+        }
+        // Send results to channel
+        results <- rec
+        // Increment progress bar
+        bar.Increment()
+    }
+    // Finish progress bar
+    bar.Finish()
+    return results, err
 }

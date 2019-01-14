@@ -29,6 +29,13 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
+// Establish Client API Connection
+func ConnectClient(con *cli.Context) (clt *maps.Client, e error) {
+    key := con.String("key")
+    clt, err := maps.NewClient(maps.WithAPIKey(key))
+    return clt, err
+}
+
 // Check API Connection Against Current IP
 func CheckClientIP(con *cli.Context, clt *maps.Client) (e error) {
 	// Allocations

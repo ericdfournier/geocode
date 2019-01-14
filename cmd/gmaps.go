@@ -45,12 +45,6 @@ func CheckCharDevice() (info os.FileInfo) {
 	if err != nil {
 		panic(err)
 	}
-	// If piped inputs not supported print error message
-	if info.Mode()&os.ModeCharDevice != 0 {
-		fmt.Println("The command is intended to work with pipes.")
-		fmt.Println("Usage: echo 'input' | gmaps [...]")
-		panic(err)
-	}
 	return info
 }
 
@@ -83,7 +77,7 @@ func main() {
 	gmaps := cli.NewApp()
 	gmaps.Name = "gmaps"
 	gmaps.Usage = "Command Line Interface to Google Maps Web Service APIs"
-	gmaps.Version = "00.06.03"
+	gmaps.Version = "00.06.05"
 	gmaps.Compiled = time.Now()
 	gmaps.Authors = []cli.Author{
 		cli.Author{
@@ -147,7 +141,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Establish new Google Maps API client connection
-				clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
+				clt, err := gm.ConnectClient(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -233,7 +227,7 @@ func main() {
 					os.Exit(2)
 				}
 				// Establish new Google Maps API client connection
-				clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
+				clt, err := gm.ConnectClient(con)
 				if err != nil {
 					fmt.Println(err)
 					os.Exit(2)
@@ -324,7 +318,7 @@ func main() {
 							os.Exit(2)
 						}
 						// Establish new Google Maps API client connections
-						clt, err := maps.NewClient(maps.WithAPIKey(con.String("key")))
+						clt, err := gm.ConnectClient(con)
 						if err != nil {
 							fmt.Println(err)
 							os.Exit(2)
@@ -393,6 +387,12 @@ func main() {
 							fmt.Println(err)
 							os.Exit(2)
 						}
+						// Establish new Google Maps API client connections
+//						clt, err := gm.ConnectClient(con)
+//						if err != nil {
+//							fmt.Println(err)
+//							os.Exit(2)
+//						}
 						return
 					},
 				},

@@ -90,3 +90,14 @@ func PlaceNearbyFormatRequest(con *cli.Context, rec *PlaceRecord) (request maps.
 	}
 	return req
 }
+
+// Format Place Detail Record for API Request
+func PlaceDetailFormatRequest(con *cli.Context, rec *PlaceRecord) (request maps.PlaceDetailsRequest) {
+    // Allocated empty request
+    var req maps.PlaceDetailsRequest
+    // Set request format
+    req = maps.PlaceDetailsRequest{
+        PlaceID: rec.Id,
+    }
+    return req
+}
